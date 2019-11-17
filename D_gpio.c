@@ -62,6 +62,12 @@ void D_Init_Gpio(GPIO_TypeDef* GpioPort, D_GPIO_InitTypeDef* GpioInit) {
 	uint32_t offset = 0;
 	uint16_t pin_mask;
 
+	if(GpioPort == GPIOB){
+		asm("nop");
+	}
+	else if(GpioPort == GPIOA){
+		asm("nop");
+	}
 	// check parameters
 //	assert(IS_GPIO_ALL_INSTANCE(GpioPort));
 //	assert(D_IS_GPIO_PIN(GpioInit->Pin));
@@ -71,7 +77,7 @@ void D_Init_Gpio(GPIO_TypeDef* GpioPort, D_GPIO_InitTypeDef* GpioInit) {
 	for (uint16_t pin = 0; pin < 16; pin++) {
 		pin_mask = 1U << pin;
 		if (pin_mask & GpioInit->Pin) {
-			reg_mask = GpioInit->Mode << (pin * LEN_2BIT);
+			reg_mask = (GpioInit->Mode & 0x03) << (pin * LEN_2BIT);
 			// clear mode first
 			reg_temp = GpioPort->MODER;
 			reg_temp &= ~(ONES_2BIT << (pin * LEN_2BIT));
@@ -81,25 +87,25 @@ void D_Init_Gpio(GPIO_TypeDef* GpioPort, D_GPIO_InitTypeDef* GpioInit) {
 			// set OutPut speed and type
 			if ((GpioInit->Mode == D_GPIO_MODE_OUT)
 					|| (GpioInit->Mode == D_GPIO_MODE_AF)) {
-				// speed
 //				assert(D_IS_GPIO_SPEED(GpioInit->OutSpeed));
-				reg_mask = GpioInit->Mode << (pin * LEN_2BIT);
+				/* set speed */
 				reg_temp = GpioPort->OSPEEDR;
+				reg_mask = (GpioInit->OutSpeed & 0x03) << (pin * LEN_2BIT);
 				// clear speed
 				reg_temp &= ~(ONES_2BIT << (pin * LEN_2BIT));
 				reg_temp |= reg_mask;
-				GpioPort->MODER = reg_temp;
+				GpioPort->OSPEEDR = reg_temp;
 
 				// output type
 //				assert(D_IS_GPIO_OTYPE(GpioInit->OutputType));
-				reg_mask = (GpioInit->OutputType << pin);
+				reg_mask = ((GpioInit->OutputType & 0x01) << pin);
 				reg_temp = GpioPort->OTYPER;
 				reg_temp &= ~(1U << pin);
 				reg_temp |= reg_mask;
 			}
 
 			// set Pu Pd resistors
-			reg_mask = (GpioInit->PuPd << (pin * LEN_2BIT));
+			reg_mask = ((GpioInit->PuPd & 0x03) << (pin * LEN_2BIT));
 			reg_temp = GpioPort->PUPDR;
 			reg_temp &= ~(ONES_2BIT << (pin * LEN_2BIT));
 			reg_temp |= reg_mask;
